@@ -947,13 +947,14 @@ int main(int argc, char **argv)
 #endif
 
 	/*
-	 * Install a handler for SIGTERM that cancels
+	 * Install a handler for SIGTERM and SIGINT that cancels
 	 * the network_daemon thread to allow atexit()
 	 * registered functions to run.
 	 */
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = sigterm_handler;
 	sigaction(SIGTERM, &sa, NULL);
+	sigaction(SIGINT, &sa, NULL);
 
 	swupdate_cfg_destroy(&handle);
 

@@ -202,6 +202,13 @@ int swupdate_file_setnonblock(int fd, bool block);
 int register_notifier(notifier client);
 int syslog_init(void);
 
+#if defined(CONFIG_UBUS)
+int ubus_init(const char *ubus_socket);
+void ubus_stop(void);
+struct progress_msg *msg;
+void ubus_notify_progress(struct progress_msg *msg);
+#endif
+
 char **splitargs(char *args, int *argc);
 char *mstrcat(const char **nodes, const char *delim);
 char** string_split(const char* a_str, const char a_delim);

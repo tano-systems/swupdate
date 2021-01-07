@@ -214,6 +214,10 @@ ifneq ($(CONFIG_SWUFORWARDER_HANDLER),)
 LDLIBS += websockets uriparser
 endif
 
+ifeq ($(CONFIG_UBUS),y)
+LDLIBS += ubus ubox
+endif
+
 # If a flat binary should be built, CFLAGS_swupdate="-elf2flt"
 # env var should be set for make invocation.
 # Here we check whether CFLAGS_swupdate indeed contains that flag.

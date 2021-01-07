@@ -112,6 +112,9 @@ static struct option long_options[] = {
 	{"check", no_argument, NULL, 'c'},
 	{"postupdate", required_argument, NULL, 'p'},
 	{"preupdate", required_argument, NULL, 'P'},
+#ifdef CONFIG_UBUS
+	{"ubus", no_argument, NULL, 'U'},
+#endif
 	{NULL, 0, NULL, 0}
 };
 
@@ -162,6 +165,9 @@ static void usage(char *programname)
 		" -H, --hwrevision <board>:<rev> : Set hardware revision\n"
 #endif
 		" -c, --check                    : check image and exit, use with -i <filename>\n"
+#ifdef CONFIG_UBUS
+		" -U, --ubus                     : enable ubus service\n"
+#endif
 		" -h, --help                     : print this help and exit\n"
 		);
 #ifdef CONFIG_DOWNLOAD
@@ -367,6 +373,9 @@ static int read_globals_settings(void *elem, void *data)
 		sw->globals.cert_purpose = parse_cert_purpose(tmp);
 	GET_FIELD_STRING(LIBCFG_PARSER, elem, "forced-signer-name",
 				sw->globals.forced_signer_name);
+#ifdef CONFIG_UBUS
+	get_field(LIBCFG_PARSER, elem, "ubus", &sw->globals.ubus_enabled);
+#endif
 
 	char software_select[SWUPDATE_GENERAL_STRING_SIZE] = "";
 	GET_FIELD_STRING(LIBCFG_PARSER, elem, "select", software_select);
@@ -442,6 +451,10 @@ static int read_processes_settings(void *settings, void *data)
 static void sigterm_handler(int __attribute__ ((__unused__)) signum)
 {
 	pthread_cancel(network_daemon);
+#ifdef CONFIG_UBUS
+	if (swcfg.globals.ubus_enabled)
+		ubus_stop();
+#endif
 }
 
 int main(int argc, char **argv)
@@ -485,6 +498,9 @@ int main(int argc, char **argv)
 	strcpy(main_options, "vhni:e:q:l:Lcf:p:P:o:N:R:Mm");
 #ifdef CONFIG_MTD
 	strcat(main_options, "b:");
+#endif
+#ifdef CONFIG_UBUS
+	strcat(main_options, "U");
 #endif
 #ifdef CONFIG_DOWNLOAD
 	strcat(main_options, "d:");
@@ -676,6 +692,11 @@ int main(int argc, char **argv)
 			usage(argv[0]);
 			exit(EXIT_SUCCESS);
 			break;
+#ifdef CONFIG_UBUS
+		case 'U':
+			swcfg.globals.ubus_enabled = 1;
+			break;
+#endif
 #ifdef CONFIG_DOWNLOAD
 		case 'd':
 			if (asprintf(&dwloptions,"%s %s", argv[0], optarg) ==
@@ -812,6 +833,15 @@ int main(int argc, char **argv)
 	}
 
 	lua_handlers_init();
+
+	/* Start ubus server */
+#if defined(CONFIG_UBUS)
+	if (swcfg.globals.ubus_enabled) {
+		if (ubus_init(NULL)) {
+			ERROR("failed to initialize ubus server");
+		}
+	}
+#endif
 
 	if(!get_hw_revision(&swcfg.hw))
 		INFO("Running on %s Revision %s", swcfg.hw.boardname, swcfg.hw.revision);

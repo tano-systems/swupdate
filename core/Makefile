@@ -27,3 +27,5 @@ obj-y += swupdate.o \
 	 swupdate_dict.o \
 	 semver.o \
 	 strlcpy.o
+
+obj-$(CONFIG_UBUS) += ubus.o

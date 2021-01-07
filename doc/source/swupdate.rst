@@ -218,6 +218,7 @@ There are only a few libraries that are required to compile SWUpdate.
 - libubootenv (optional) if support for U-Boot is enabled
 - libebgenv (optional) if support for EFI Boot Guard is enabled
 - libcurl used to communicate with network
+- libubus & libubox (optional) if support for ubus is enabled
 
 New handlers can add some other libraries to the requirement list -
 check if you need all handlers in case you get build errors,

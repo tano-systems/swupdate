@@ -133,6 +133,7 @@ static int send_file(const char* filename) {
 
 	struct swupdate_request req;
 	swupdate_prepare_req(&req);
+	req.source = SOURCE_LOCAL;
 	if (dry_run)
 		req.dry_run = RUN_DRYRUN;
 	if (software_set && strlen(software_set)) {

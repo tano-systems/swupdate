@@ -85,6 +85,10 @@ static void send_progress_msg(void)
 			buf = (char*)buf + n;
 		}
 	}
+
+#if defined(CONFIG_UBUS)
+	ubus_notify_progress(&pprog->msg);
+#endif
 }
 
 static void _swupdate_download_update(unsigned int perc, unsigned long long totalbytes)

@@ -101,6 +101,10 @@ config HAVE_URIPARSER
 	bool
 	option env="HAVE_URIPARSER"
 
+config HAVE_LIBUBUS
+	bool
+	option env="HAVE_LIBUBUS"
+
 menu "Swupdate Settings"
 
 menu "General Configuration"
@@ -112,6 +116,13 @@ config CURL
 config CURL_SSL
 	bool
 	default n
+
+config UBUS
+	bool "enable ubus support (OpenWrt)"
+	depends on HAVE_LIBUBUS
+	default n
+	help
+	  Enable support for ubus
 
 config SYSTEMD
 	bool "enable systemd support"

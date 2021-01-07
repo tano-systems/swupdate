@@ -143,6 +143,9 @@ struct swupdate_global_cfg {
 	char current_version[SWUPDATE_GENERAL_STRING_SIZE];
 	int cert_purpose;
 	char forced_signer_name[SWUPDATE_GENERAL_STRING_SIZE];
+#if defined(CONFIG_UBUS)
+	int ubus_enabled;
+#endif
 };
 
 struct swupdate_cfg {

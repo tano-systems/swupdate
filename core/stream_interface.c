@@ -135,6 +135,8 @@ static int extract_files(int fd, struct swupdate_cfg *software)
 	encrypted_sw_desc = true;
 #endif
 
+	inst.total_items_to_install = 0;
+
 	/* preset the info about the install parts */
 
 	offset = 0;
@@ -219,6 +221,9 @@ static int extract_files(int fd, struct swupdate_cfg *software)
 			 */
 			switch (skip) {
 			case COPY_FILE:
+				if (!img->is_script || (img->is_script && img->execute_when_no_images)) {
+					inst.total_items_to_install++;
+				}
 				fdout = openfileoutput(img->extract_file);
 				if (fdout < 0)
 					return -1;
@@ -243,6 +248,8 @@ static int extract_files(int fd, struct swupdate_cfg *software)
 				break;
 			case INSTALL_FROM_STREAM:
 				TRACE("Installing STREAM %s, %lld bytes", img->fname, img->size);
+
+				inst.total_items_to_install++;
 
 				/*
 				 * If this is the first image to be directly installed, set transaction flag
@@ -582,8 +589,21 @@ void *network_initializer(void *data)
 		if (!(inst.fd < 0))
 			close(inst.fd);
 
+		char *installinfo;
+		if (asprintf(&installinfo, "{\"ITEMS_TO_INSTALL\":%d}", inst.total_items_to_install) == ENOMEM_ASPRINTF)
+			ERROR("OOM sending install info");
+		else {
+			swupdate_progress_info(RUN, 0, installinfo);
+			free(installinfo);
+		}
+
 		/* do carry out the installation (flash programming) */
-		if (ret == 0) {
+		if ((ret == 0) && (!inst.total_items_to_install)) {
+			TRACE("No items to install founded");
+			notify(SUCCESS, RECOVERY_NO_ERROR, INFOLEVEL, "SWUPDATE successful !");
+			inst.last_install = SUCCESS;
+		}
+		else if (ret == 0) {
 			TRACE("Valid image found: copying to FLASH");
 
 			/*

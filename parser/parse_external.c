@@ -102,6 +102,8 @@ static void sw_append_stream(struct img_type *img, const char *key,
 		img->id.install_if_different = 1;
 	if (!strcmp(key, "install-if-higher"))
 		img->id.install_if_higher = 1;
+	if (!strcmp(key, "execute-when-no-images"))
+		img->id.execute_when_no_images = true;
 }
 
 int parse_external(struct swupdate_cfg *software, const char *filename)

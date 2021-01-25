@@ -86,6 +86,7 @@ struct img_type {
 	int install_directly;
 	int is_script;
 	int is_partitioner;
+	bool execute_when_no_images;
 	struct dict properties;
 	struct dict *bootloader; /* pointer to swupdate_cfg's bootloader dict for handlers to modify */
 	long long partsize;

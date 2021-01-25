@@ -429,6 +429,7 @@ static int parse_common_attributes(parsertype p, void *elem, struct img_type *im
 	get_field(p, elem, "install-if-different", &image->id.install_if_different);
 	get_field(p, elem, "install-if-higher", &image->id.install_if_higher);
 	get_field(p, elem, "encrypted", &image->is_encrypted);
+	get_field(p, elem, "execute-when-no-images", &image->execute_when_no_images);
 	GET_FIELD_STRING(p, elem, "ivt", image->ivt_ascii);
 
 	if (is_image_installed(&cfg->installed_sw_list, image)) {
@@ -562,6 +563,8 @@ static int _parse_scripts(parsertype p, void *cfg, void *setting, const char **n
 			ERROR( "No memory: malloc failed");
 			return -ENOMEM;
 		}
+
+		script->execute_when_no_images = true;
 
 		if (parse_common_attributes(p, elem, script, swcfg) < 0) {
 			free_image(script);

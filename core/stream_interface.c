@@ -207,10 +207,11 @@ static int extract_files(int fd, struct swupdate_cfg *software)
 					break;
 			}
 
-			TRACE("Found file");
+			TRACE("Found file [%s]",
+				(skip == SKIP_FILE ? "Not required: skipping" :
+				(img->is_script && !img->execute_when_no_images) ? "skipped when no images to install" : "required"));
 			TRACE("\tfilename %s", fdh.filename);
-			TRACE("\tsize %u %s", (unsigned int)fdh.size,
-				(skip == SKIP_FILE ? "Not required: skipping" : "required"));
+			TRACE("\tsize %u", (unsigned int)fdh.size);
 
 			fdout = -1;
 			offset = 0;

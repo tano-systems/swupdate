@@ -353,7 +353,7 @@ int install_images(struct swupdate_cfg *sw)
 		return ret;
 	}
 
-	if (!LIST_EMPTY(&sw->bootloader)) {
+	if (!sw->globals.no_bootloader_env && !LIST_EMPTY(&sw->bootloader)) {
 		char* bootscript = alloca(strlen(TMPDIR)+strlen(BOOT_SCRIPT_SUFFIX)+1);
 		sprintf(bootscript, "%s%s", TMPDIR, BOOT_SCRIPT_SUFFIX);
 		ret = update_bootloader_env(sw, bootscript);

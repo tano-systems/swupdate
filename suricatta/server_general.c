@@ -487,7 +487,7 @@ server_op_res_t server_has_pending_action(int *action_id)
 	*action_id = 0;
 
 	if ((result == SERVER_UPDATE_AVAILABLE) &&
-	    (get_state() == STATE_INSTALLED)) {
+	    (get_state(NULL) == STATE_INSTALLED)) {
 		WARN("An already installed update is pending testing, "
 		     "ignoring available update action.");
 		INFO("Please restart SWUpdate to report the test results "

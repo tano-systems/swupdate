@@ -626,7 +626,7 @@ void *network_initializer(void *data)
 				inst.last_install = FAILURE;
 				if (!software->globals.dry_run
 				    && software->bootloader_state_marker
-				    && save_state(STATE_FAILED) != SERVER_OK) {
+				    && save_state(software, STATE_FAILED) != SERVER_OK) {
 					WARN("Cannot persistently store FAILED update state.");
 				}
 			} else {
@@ -639,7 +639,7 @@ void *network_initializer(void *data)
 				}
 				if (!software->globals.dry_run
 				    && software->bootloader_state_marker
-				    && save_state(STATE_INSTALLED) != SERVER_OK) {
+				    && save_state(software, STATE_INSTALLED) != SERVER_OK) {
 					ERROR("Cannot persistently store INSTALLED update state.");
 					notify(FAILURE, RECOVERY_ERROR, ERRORLEVEL, "Installation failed !");
 					inst.last_install = FAILURE;

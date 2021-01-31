@@ -516,12 +516,12 @@ void *network_thread (void *data)
 			case SET_UPDATE_STATE:
 				value = *(update_state_t *)msg.data.msg;
 				msg.type = (is_valid_state(value) &&
-					    save_state(value) == SERVER_OK)
+					    save_state(instp->software, value) == SERVER_OK)
 					       ? ACK
 					       : NACK;
 				break;
 			case GET_UPDATE_STATE:
-				msg.data.msg[0] = get_state();
+				msg.data.msg[0] = get_state(instp->software);
 				msg.type = ACK;
 				break;
 			default:

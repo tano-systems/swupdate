@@ -16,6 +16,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "pctl.h"
+#include "swupdate.h"
 
 /*
  * This check is to avoid to corrupt the environment
@@ -30,7 +31,7 @@
 	} \
 } while(0)
 
-static int do_save_state(char *key, char* value)
+static int do_save_state(struct swupdate_cfg const *sw, char *key, char* value)
 {
 	CHECK_STATE_VAR(key);
 	if (!value)
@@ -39,10 +40,13 @@ static int do_save_state(char *key, char* value)
 	if (c < STATE_OK || c > STATE_LAST)
 		return -EINVAL;
 
+	if (sw && sw->globals.no_bootloader_env)
+		return 0;
+
 	return bootloader_env_set(key, value);
 }
 
-int save_state(update_state_t value)
+int save_state(struct swupdate_cfg const *sw, update_state_t value)
 {
 	char value_str[2] = {value, '\0'};
 	ipc_message msg;
@@ -54,13 +58,16 @@ int save_state(update_state_t value)
 		return (ipc_send_cmd(&msg));
 	} else {
 		/* Main process */
-		return do_save_state((char *)STATE_KEY, value_str);
+		return do_save_state(sw, (char *)STATE_KEY, value_str);
 	}
 }
 
-static update_state_t read_state(char *key)
+static update_state_t read_state(struct swupdate_cfg const *sw, char *key)
 {
 	CHECK_STATE_VAR(key);
+
+	if (sw && sw->globals.no_bootloader_env)
+		return STATE_OK;
 
 	char *envval = bootloader_env_get(key);
 	if (envval == NULL) {
@@ -77,8 +84,8 @@ static update_state_t read_state(char *key)
 	return val;
 }
 
-static update_state_t do_get_state(void) {
-	update_state_t state = read_state((char *)STATE_KEY);
+static update_state_t do_get_state(struct swupdate_cfg const *sw) {
+	update_state_t state = read_state(sw, (char *)STATE_KEY);
 
 	if (state == STATE_NOT_AVAILABLE) {
 		ERROR("Cannot read stored update state.");
@@ -94,7 +101,7 @@ static update_state_t do_get_state(void) {
 	return STATE_NOT_AVAILABLE;
 }
 
-update_state_t get_state(void) {
+update_state_t get_state(struct swupdate_cfg const *sw) {
 	if (pid == getpid())
 	{
 		ipc_message msg;
@@ -110,6 +117,6 @@ update_state_t get_state(void) {
 		return (update_state_t)msg.data.msg[0];
 	} else {
 		// Main process
-		return do_get_state();
+		return do_get_state(sw);
 	}
 }

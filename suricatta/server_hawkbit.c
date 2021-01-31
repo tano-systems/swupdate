@@ -740,7 +740,7 @@ server_op_res_t server_has_pending_action(int *action_id)
 		/*
 		 * Save the state
 		 */
-		if ((result = save_state(STATE_OK)) != SERVER_OK) {
+		if ((result = save_state(NULL, STATE_OK)) != SERVER_OK) {
 			ERROR("Error while resetting update state on persistent "
 			"storage.\n");
 		}
@@ -764,7 +764,7 @@ server_op_res_t server_has_pending_action(int *action_id)
 
 
 	if ((result == SERVER_UPDATE_AVAILABLE) &&
-	    (get_state() == STATE_INSTALLED)) {
+	    (get_state(NULL) == STATE_INSTALLED)) {
 		WARN("An already installed update is pending testing, "
 		     "ignoring available update action.");
 		INFO("Please restart SWUpdate to report the test results "
@@ -842,7 +842,7 @@ server_op_res_t server_handle_initial_state(update_state_t stateovrrd)
 			return SERVER_EINIT;
 		}
 	} else {
-		if ((state = get_state()) == STATE_ERROR) {
+		if ((state = get_state(NULL)) == STATE_ERROR) {
 			return SERVER_EINIT;
 		}
 	}
@@ -891,7 +891,7 @@ server_op_res_t server_handle_initial_state(update_state_t stateovrrd)
 	/* NOTE (Re-)setting STATE_KEY=STATE_OK == '0' instead of deleting it
 	 *      as it may be required for the switchback/recovery U-Boot logics.
 	 */
-	if ((result = save_state(STATE_OK)) != SERVER_OK) {
+	if ((result = save_state(NULL, STATE_OK)) != SERVER_OK) {
 		ERROR("Error while resetting update state on persistent "
 		      "storage.\n");
 		return result;
@@ -1947,7 +1947,7 @@ static server_op_res_t server_activation_ipc(ipc_message *msg)
 		/*
 		 * Save the state
 		 */
-		if ((result = save_state(STATE_OK)) != SERVER_OK) {
+		if ((result = save_state(NULL, STATE_OK)) != SERVER_OK) {
 			ERROR("Error while resetting update state on persistent "
 			"storage.\n");
 		}

@@ -196,7 +196,7 @@ static bool get_common_fields(parsertype p, void *cfg, struct swupdate_cfg *swcf
 		TRACE("Description %s", swcfg->description);
 	}
 
-	if(swcfg->globals.no_state_marker) {
+	if(swcfg->globals.no_state_marker || swcfg->globals.no_bootloader_env) {
 		swcfg->bootloader_state_marker = false;
 	} else {
 		swcfg->bootloader_state_marker = true;
@@ -207,7 +207,7 @@ static bool get_common_fields(parsertype p, void *cfg, struct swupdate_cfg *swcf
 		}
 	}
 
-	if(swcfg->globals.no_transaction_marker) {
+	if(swcfg->globals.no_transaction_marker || swcfg->globals.no_bootloader_env) {
 		swcfg->bootloader_transaction_marker = false;
 	} else {
 		swcfg->bootloader_transaction_marker = true;

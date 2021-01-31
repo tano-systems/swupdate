@@ -133,6 +133,7 @@ struct swupdate_global_cfg {
 	int no_reinstalling;
 	int no_transaction_marker;
 	int no_state_marker;
+	int no_bootloader_env;
 	char publickeyfname[SWUPDATE_GENERAL_STRING_SIZE];
 	char aeskeyfname[SWUPDATE_GENERAL_STRING_SIZE];
 	char postupdatecmd[SWUPDATE_GENERAL_STRING_SIZE];

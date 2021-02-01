@@ -48,6 +48,40 @@ static struct ubi_part *search_volume_global(const char *str)
 		if (ubivol)
 			return ubivol;
 	}
+
+	return NULL;
+}
+
+/* search a UBI volume by name in specified device */
+static struct ubi_part *search_volume_in_device(const char *str, const char *device)
+{
+	struct flash_description *flash = get_flash_info();
+	struct mtd_info *mtd_info = &flash->mtd;
+	struct mtd_ubi_info *mtd_ubi_info;
+	struct ubi_part *ubivol;
+
+	int mtdnum = get_mtd_from_device(device);
+	if (mtdnum < 0) {
+		/* allow device to be specified by name OR number */
+		mtdnum = get_mtd_from_name(device);
+	}
+
+	/* find the volume to be updated */
+	if (mtdnum < 0 || !mtd_dev_present(flash->libmtd, mtdnum)) {
+		ubivol = search_volume_global(str);
+	}
+	else {
+		/* if specified MTD device find UBI volume only in specified MTD */
+		if ((mtdnum >= mtd_info->lowest_mtd_num) &&
+		    (mtdnum <= mtd_info->highest_mtd_num)) {
+			mtd_ubi_info = &flash->mtd_info[mtdnum];
+			ubivol = search_volume(str, &mtd_ubi_info->ubi_partitions);
+		}
+	}
+
+	if (ubivol)
+		return ubivol;
+
 	return NULL;
 }
 
@@ -74,7 +108,7 @@ static int check_replace(struct img_type *img,
 	if (tmpvol_name == NULL)
 		return 0;
 
-	tmpvol = search_volume_global(tmpvol_name);
+	tmpvol = search_volume_in_device(tmpvol_name, img->device);
 
 	if (!tmpvol) {
 		ERROR("replace: unable to find a volume %s", tmpvol_name);
@@ -418,7 +452,7 @@ static int wait_volume(struct img_type *img)
 	struct stat buf;
 	char node[64];
 
-	ubivol = search_volume_global(img->volname);
+	ubivol = search_volume_in_device(img->volname, img->device);
 	if (!ubivol) {
 		ERROR("can't found volume %s", img->volname);
 		return -1;
@@ -469,7 +503,7 @@ static int install_ubivol_image(struct img_type *img,
 	}
 
 	/* find the volume to be updated */
-	ubivol = search_volume_global(img->volname);
+	ubivol = search_volume_in_device(img->volname, img->device);
 
 	if (!ubivol) {
 		ERROR("Image %s should be stored in volume "
@@ -490,11 +524,11 @@ static int adjust_volume(struct img_type *cfg,
 	return resize_volume(cfg, cfg->partsize);
 }
 
-static int ubi_volume_get_info(char *name, int *dev_num, int *vol_id)
+static int ubi_volume_get_info(char *name, char *device, int *dev_num, int *vol_id)
 {
 	struct ubi_part *ubi_part;
 
-	ubi_part = search_volume_global(name);
+	ubi_part = search_volume_in_device(name, device);
 	if (!ubi_part) {
 		ERROR("could not found UBI volume %s", name);
 		return -1;
@@ -552,6 +586,7 @@ static int swap_volume(struct img_type *img, void *data)
 
 			name[num] = volume->value;
 			if (ubi_volume_get_info(volume->value,
+						img->device,
 						&dev_num[num],
 						&vol_id[num]) < 0)
 				goto out;

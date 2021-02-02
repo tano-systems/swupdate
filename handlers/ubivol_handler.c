@@ -163,6 +163,24 @@ static int swap_volnames(libubi_t libubi,
 }
 
 /**
+ * check_ubi_volume_id - check the property volume-id for this image
+ * @img: image information
+ *
+ * Return: UBI_VOL_NUM_AUTO if the property volume-id is not set,
+ * otherwise integer value of the property.
+ */
+static int check_ubi_volume_id(struct img_type *img)
+{
+	char *volume_id;
+	volume_id = dict_get_value(&img->properties, "volume-id");
+
+	if (volume_id)
+		return (int)strtol(volume_id, NULL, 0);
+
+	return UBI_VOL_NUM_AUTO;
+}
+
+/**
  * check_ubi_alwaysremove - check the property always-remove for this image
  * @img: image information
  *
@@ -392,7 +410,7 @@ static int resize_volume(struct img_type *cfg, long long size)
 		 */
 		memset(&req, 0, sizeof(req));
 		req.vol_type = req_vol_type;
-		req.vol_id = UBI_VOL_NUM_AUTO;
+		req.vol_id = check_ubi_volume_id(cfg);
 		req.alignment = 1;
 		req.bytes = size;
 		req.name = cfg->volname;
@@ -418,9 +436,9 @@ static int resize_volume(struct img_type *cfg, long long size)
 			return err;
 		}
 		LIST_INSERT_HEAD(&mtd_info->ubi_partitions, ubivol, next);
-		TRACE("Created %s UBI volume %s of %lld bytes (old size %lld)",
+		TRACE("Created %s UBI volume %s (id = %d) of %lld bytes (old size %lld)",
 			  (req_vol_type == UBI_DYNAMIC_VOLUME) ? "dynamic" : "static",
-			  req.name, req.bytes, ubivol->vol_info.rsvd_bytes);
+			  req.name, req.vol_id, req.bytes, ubivol->vol_info.rsvd_bytes);
 	}
 
 	return 0;

@@ -113,6 +113,7 @@ static struct option long_options[] = {
 	{"check", no_argument, NULL, 'c'},
 	{"postupdate", required_argument, NULL, 'p'},
 	{"preupdate", required_argument, NULL, 'P'},
+	{"hook", required_argument, NULL, 'X'},
 #ifdef CONFIG_UBUS
 	{"ubus", no_argument, NULL, 'U'},
 #endif
@@ -133,6 +134,7 @@ static void usage(char *programname)
 #endif
 		" -p, --postupdate               : execute post-update command\n"
 		" -P, --preupdate                : execute pre-update command\n"
+		" -X, --hook <command>           : execute command on pre/post-update stages\n"
 		" -e, --select <software>,<mode> : Select software images set and source\n"
 		"                                  Ex.: stable,main\n"
 		" --accepted-select\n"
@@ -358,6 +360,8 @@ static int read_globals_settings(void *elem, void *data)
 				"postupdatecmd", sw->globals.postupdatecmd);
 	GET_FIELD_STRING(LIBCFG_PARSER, elem,
 				"preupdatecmd", sw->globals.preupdatecmd);
+	GET_FIELD_STRING(LIBCFG_PARSER, elem,
+				"hookcmd", sw->globals.hookcmd);
 	get_field(LIBCFG_PARSER, elem, "verbose", &sw->globals.verbose);
 	get_field(LIBCFG_PARSER, elem, "loglevel", &sw->globals.loglevel);
 	get_field(LIBCFG_PARSER, elem, "syslog", &sw->globals.syslog_enabled);
@@ -497,7 +501,7 @@ int main(int argc, char **argv)
 #endif
 	memset(main_options, 0, sizeof(main_options));
 	memset(image_url, 0, sizeof(image_url));
-	strcpy(main_options, "vhni:e:q:l:Lcf:p:P:o:N:R:MmB");
+	strcpy(main_options, "vhni:e:q:l:Lcf:p:P:X:o:N:R:MmB");
 #ifdef CONFIG_MTD
 	strcat(main_options, "b:");
 #endif
@@ -756,6 +760,10 @@ int main(int argc, char **argv)
 		case 'P':
 			strlcpy(swcfg.globals.preupdatecmd, optarg,
 				sizeof(swcfg.globals.preupdatecmd));
+			break;
+		case 'X':
+			strlcpy(swcfg.globals.hookcmd, optarg,
+				sizeof(swcfg.globals.hookcmd));
 			break;
 		default:
 			fprintf(stdout, "Try %s -h for usage\n", argv[0]);

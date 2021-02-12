@@ -481,3 +481,22 @@ int postupdate(struct swupdate_cfg *swcfg, const char *info)
 
 	return 0;
 }
+
+int hookcmd(struct swupdate_cfg *swcfg, const char *hook)
+{
+	if (swcfg) {
+		if (swcfg->globals.dry_run) {
+			DEBUG("Dry run, skipping hook %s command", hook);
+		} else if (swcfg->globals.hookcmd[0]) {
+			char cmd[SWUPDATE_GENERAL_STRING_SIZE];
+
+			snprintf(cmd, sizeof(cmd),
+				"%s %s", swcfg->globals.hookcmd, hook);
+
+			DEBUG("Running hook %s command", hook);
+			return run_system_cmd(cmd);
+		}
+	}
+
+	return 0;
+}

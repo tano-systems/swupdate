@@ -175,6 +175,9 @@ static int extract_files(int fd, struct swupdate_cfg *software)
 			if (preupdatecmd(software)) {
 				return -1;
 			}
+			if (hookcmd(software, HOOK_PREUPDATE)) {
+				return -1;
+			}
 			status = STREAM_DATA;
 			break;
 
@@ -605,6 +608,8 @@ void *network_initializer(void *data)
 			inst.last_install = SUCCESS;
 		}
 		else if (ret == 0) {
+			const char *hook;
+
 			TRACE("Valid image found: copying to FLASH");
 
 			/*
@@ -647,6 +652,18 @@ void *network_initializer(void *data)
 					notify(SUCCESS, RECOVERY_NO_ERROR, INFOLEVEL, "SWUPDATE successful !");
 					inst.last_install = SUCCESS;
 				}
+			}
+
+			/* call post-update hook */
+			if (inst.last_install == SUCCESS) {
+				hook = HOOK_POSTUPDATE_SUCCESS;
+			} else {
+				hook = HOOK_POSTUPDATE_FAILED;
+			}
+
+			ret = hookcmd(software, hook);
+			if (ret) {
+				WARN("Running hook %s command failed (%d)", hook, ret);
 			}
 		} else {
 			inst.last_install = FAILURE;

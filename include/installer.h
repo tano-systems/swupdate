@@ -24,4 +24,10 @@ int postupdate(struct swupdate_cfg *swcfg, const char *info);
 int preupdatecmd(struct swupdate_cfg *swcfg);
 void cleanup_files(struct swupdate_cfg *software);
 
+#define HOOK_PREUPDATE "preupdate"
+#define HOOK_POSTUPDATE_SUCCESS "postupdate-success"
+#define HOOK_POSTUPDATE_FAILED "postupdate-failed"
+
+int hookcmd(struct swupdate_cfg *swcfg, const char *hook);
+
 #endif

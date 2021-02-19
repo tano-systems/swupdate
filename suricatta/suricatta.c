@@ -224,9 +224,9 @@ int start_suricatta(const char *cfgfname, int argc, char *argv[])
 				server.install_update();
 				break;
 			case SERVER_ID_REQUESTED:
-				server.send_target_data();
 				trigger = true;
-				continue;
+				if (server.send_target_data() == SERVER_OK)
+					continue;
 				break;
 			case SERVER_EINIT:
 				break;

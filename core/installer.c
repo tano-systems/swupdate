@@ -491,7 +491,11 @@ int hookcmd(struct swupdate_cfg *swcfg, const char *hook)
 			char cmd[SWUPDATE_GENERAL_STRING_SIZE];
 
 			snprintf(cmd, sizeof(cmd),
-				"%s %s", swcfg->globals.hookcmd, hook);
+				"%s %s %s %s",
+				swcfg->globals.hookcmd,
+				hook,
+				swcfg->software_set,
+				swcfg->running_mode);
 
 			DEBUG("Running hook %s command", hook);
 			return run_system_cmd(cmd);

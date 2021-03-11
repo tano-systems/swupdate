@@ -498,6 +498,10 @@ int hookcmd(struct swupdate_cfg *swcfg, const char *hook)
 				swcfg->running_mode);
 
 			DEBUG("Running hook %s command", hook);
+
+			setenv("SWU_SOFTWARE_SET", swcfg->software_set, 1);
+			setenv("SWU_RUNNING_MODE", swcfg->running_mode, 1);
+
 			return run_system_cmd(cmd);
 		}
 	}

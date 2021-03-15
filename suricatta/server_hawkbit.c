@@ -1008,6 +1008,61 @@ static void *process_notification_thread(void *data)
 	return NULL;
 }
 
+static void parse_and_set_custom_selector(const char *filename,
+	channel_data_t *channel_data)
+{
+	char *saveptr1;
+	char *token;
+	char *software_set = NULL;
+	char *running_mode = NULL;
+	int n = 0;
+
+	char *data = strdup(filename);
+	if (!data)
+		return;
+
+	token = strtok_r(data, ".", &saveptr1);
+	while (token) {
+		switch (n) {
+			case 0:
+				/* Image name */
+				break;
+
+			case 1:
+				/* Software set */
+				software_set = token;
+				break;
+
+			case 2:
+				/* Running mode */
+				running_mode = token;
+				break;
+
+			case 3:
+				/* Extension */
+				if (strcmp(token, "swu"))
+					goto failure;
+
+				break;
+
+			default:
+				goto failure;
+		}
+
+		token = strtok_r(NULL, ".", &saveptr1);
+		n++;
+	}
+
+	if (software_set && running_mode) {
+		channel_data->custom_software_set = strdup(software_set);
+		channel_data->custom_running_mode = strdup(running_mode);
+	}
+
+failure:
+	free(data);
+	return;
+}
+
 server_op_res_t server_process_update_artifact(int action_id,
 						json_object *json_data_artifact,
 						const char *update_action,
@@ -1115,6 +1170,13 @@ server_op_res_t server_process_update_artifact(int action_id,
 		      json_object_get_string(json_data_artifact_url));
 
 		channel_data_t channel_data = channel_data_defaults;
+
+		/*
+		 * Parse and set custom software set and running mode from filename
+		 * from pattern 'swu-image-name.<software_set>.<running_mode>.swu'.
+		 */
+		parse_and_set_custom_selector(s, &channel_data);
+
 		channel_data.url =
 		    strdup(json_object_get_string(json_data_artifact_url));
 
@@ -1225,6 +1287,12 @@ server_op_res_t server_process_update_artifact(int action_id,
 			}
 		}
 		pthread_mutex_destroy(&notifylock);
+		if (channel_data.custom_software_set != NULL) {
+			free(channel_data.custom_software_set);
+		}
+		if (channel_data.custom_running_mode != NULL) {
+			free(channel_data.custom_running_mode);
+		}
 		if (channel_data.url != NULL) {
 			free(channel_data.url);
 		}

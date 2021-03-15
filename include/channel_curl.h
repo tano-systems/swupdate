@@ -72,4 +72,6 @@ typedef struct {
 	char sha1hash[SWUPDATE_SHA_DIGEST_LENGTH * 2 + 1];
 	sourcetype source;
 	struct dict *headers;
+	char *custom_software_set;
+	char *custom_running_mode;
 } channel_data_t;

@@ -1107,6 +1107,12 @@ channel_op_res_t channel_get_file(channel_t *this, void *data)
 	swupdate_prepare_req(&req);
 	req.dry_run = channel_data->dry_run;
 	req.source = channel_data->source;
+
+	if (channel_data->custom_software_set && channel_data->custom_running_mode) {
+		strncpy(req.software_set, channel_data->custom_software_set, sizeof(req.software_set) - 1);
+		strncpy(req.running_mode, channel_data->custom_running_mode, sizeof(req.running_mode) - 1);
+	}
+
 	if (channel_data->info) {
 		strncpy(req.info, channel_data->info,
 			  sizeof(req.info) - 1 );

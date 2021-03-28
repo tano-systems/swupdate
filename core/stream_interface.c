@@ -261,7 +261,7 @@ static int extract_files(int fd, struct swupdate_cfg *software)
 				 * just once
 				 */
 				if (!installed_directly) {
-					if (!software->globals.dry_run && software->bootloader_transaction_marker) {
+					if (!software->parms.dry_run && software->bootloader_transaction_marker) {
 						bootloader_env_set(BOOTVAR_TRANSACTION, get_state_string(STATE_IN_PROGRESS));
 					}
 					installed_directly = true;
@@ -275,7 +275,7 @@ static int extract_files(int fd, struct swupdate_cfg *software)
 					if (!part->install_directly && part->is_partitioner) {
 						TRACE("Need to adjust partition %s before streaming %s",
 							part->volname, img->fname);
-						if (install_single_image(part, software->globals.dry_run)) {
+						if (install_single_image(part, software->parms.dry_run)) {
 							ERROR("Error adjusting partition %s", part->volname);
 							return -1;
 						}
@@ -284,7 +284,7 @@ static int extract_files(int fd, struct swupdate_cfg *software)
 					}
 				}
 				img->fdin = fd;
-				if (install_single_image(img, software->globals.dry_run)) {
+				if (install_single_image(img, software->parms.dry_run)) {
 					ERROR("Error streaming %s", img->fname);
 					return -1;
 				}
@@ -507,6 +507,7 @@ void *network_initializer(void *data)
 	int ret;
 	struct swupdate_cfg *software = data;
 	struct swupdate_request *req;
+	struct swupdate_parms parms;
 
 	/* No installation in progress */
 	memset(&inst, 0, sizeof(inst));
@@ -532,18 +533,22 @@ void *network_initializer(void *data)
 		req = &inst.req;
 
 		/*
+		 * Save default values, they can be changed by a
+		 * install request
+		 */
+		parms = software->parms;
+		/*
 		 * Check if the dry run flag is overwritten
 		 */
 		switch (req->dry_run){
 		case RUN_DRYRUN:
-			software->globals.dry_run = 1;
+			software->parms.dry_run = true;
 			break;
 		case RUN_INSTALL:
-			software->globals.dry_run = 0;
+			software->parms.dry_run = false;
 			break;
 		case RUN_DEFAULT:
-		default:
-			software->globals.dry_run = software->globals.default_dry_run;
+			break;
 		}
 
 		/*
@@ -551,13 +556,8 @@ void *network_initializer(void *data)
 		 */
 		if ((strnlen(req->software_set, sizeof(req->software_set)) > 0) &&
 				(strnlen(req->running_mode, sizeof(req->running_mode)) > 0)) {
-			strlcpy(software->software_set, req->software_set, sizeof(software->software_set) - 1);
-			strlcpy(software->running_mode, req->running_mode, sizeof(software->running_mode) - 1);
-		} else {
-			strlcpy(software->software_set, software->globals.default_software_set,
-				sizeof(software->software_set) - 1);
-			strlcpy(software->running_mode, software->globals.default_running_mode,
-				sizeof(software->running_mode) - 1);
+			strlcpy(software->parms.software_set, req->software_set, sizeof(software->parms.software_set) - 1);
+			strlcpy(software->parms.running_mode, req->running_mode, sizeof(software->parms.running_mode) - 1);
 		}
 
 		/*
@@ -617,19 +617,19 @@ void *network_initializer(void *data)
 			 * must be successful. Set we have
 			 * initiated an update
 			 */
-			if (!software->globals.dry_run && software->bootloader_transaction_marker) {
+			if (!software->parms.dry_run && software->bootloader_transaction_marker) {
 				bootloader_env_set(BOOTVAR_TRANSACTION, get_state_string(STATE_IN_PROGRESS));
 			}
 
 			notify(RUN, RECOVERY_NO_ERROR, INFOLEVEL, "Installation in progress");
 			ret = install_images(software);
 			if (ret != 0) {
-				if (!software->globals.dry_run && software->bootloader_transaction_marker) {
+				if (!software->parms.dry_run && software->bootloader_transaction_marker) {
 					bootloader_env_set(BOOTVAR_TRANSACTION, get_state_string(STATE_FAILED));
 				}
 				notify(FAILURE, RECOVERY_ERROR, ERRORLEVEL, "Installation failed !");
 				inst.last_install = FAILURE;
-				if (!software->globals.dry_run
+				if (!software->parms.dry_run
 				    && software->bootloader_state_marker
 				    && save_state(software, STATE_FAILED) != SERVER_OK) {
 					WARN("Cannot persistently store FAILED update state.");
@@ -639,10 +639,10 @@ void *network_initializer(void *data)
 				 * Clear the recovery variable to indicate to bootloader
 				 * that it is not required to start recovery again
 				 */
-				if (!software->globals.dry_run && software->bootloader_transaction_marker) {
+				if (!software->parms.dry_run && software->bootloader_transaction_marker) {
 					bootloader_env_unset(BOOTVAR_TRANSACTION);
 				}
-				if (!software->globals.dry_run
+				if (!software->parms.dry_run
 				    && software->bootloader_state_marker
 				    && save_state(software, STATE_INSTALLED) != SERVER_OK) {
 					ERROR("Cannot persistently store INSTALLED update state.");
@@ -672,6 +672,11 @@ void *network_initializer(void *data)
 
 		swupdate_progress_end(inst.last_install);
 
+		/*
+		 * Reload default values for update
+		 */
+		software->parms = parms;
+
 		pthread_mutex_lock(&stream_mutex);
 		inst.status = IDLE;
 		pthread_mutex_unlock(&stream_mutex);
@@ -696,7 +701,7 @@ void get_install_swset(char *buf, size_t len)
 	if (!buf)
 		return;
 
-	strncpy(buf, inst.software->software_set, len - 1);
+	strncpy(buf, inst.software->parms.software_set, len - 1);
 
 }
 
@@ -706,7 +711,7 @@ void get_install_running_mode(char *buf, size_t len)
 	if (!buf)
 		return;
 
-	strncpy(buf, inst.software->running_mode, len - 1);
+	strncpy(buf, inst.software->parms.running_mode, len - 1);
 }
 
 /*
@@ -721,4 +726,24 @@ int get_install_info(sourcetype *source, char *buf, size_t len)
 	*source = inst.req.source;
 
 	return len;
+}
+
+void set_version_range(const char *minversion,
+		const char *maxversion, const char *current)
+{
+	if (minversion && strnlen(minversion, SWUPDATE_GENERAL_STRING_SIZE)) {
+		strlcpy(inst.software->minimum_version, minversion,
+			sizeof(inst.software->minimum_version));
+		inst.software->no_downgrading = true;
+	}
+	if (maxversion && strnlen(maxversion, SWUPDATE_GENERAL_STRING_SIZE)) {
+		strlcpy(inst.software->maximum_version, maxversion,
+			sizeof(inst.software->maximum_version));
+		inst.software->check_max_version = true;
+	}
+	if (current && strnlen(current, SWUPDATE_GENERAL_STRING_SIZE)) {
+		strlcpy(inst.software->current_version, current,
+			sizeof(inst.software->current_version));
+		inst.software->no_reinstalling = true;
+	}
 }

@@ -23,6 +23,7 @@
 #include <time.h>
 #include <libgen.h>
 #include <regex.h>
+#include <string.h>
 
 #include "swupdate.h"
 #include "util.h"
@@ -841,4 +842,148 @@ size_t snescape(char *dst, size_t n, const char *src)
 	}
 
 	return len;
+}
+
+/*
+ * This returns the device name where rootfs is mounted
+ */
+static char *get_root_from_partitions(void)
+{
+	struct stat info;
+	FILE *fp;
+	char *devname = NULL;
+	unsigned long major, minor, nblocks;
+	char buf[256];
+	int ret;
+
+	if (stat("/", &info) < 0)
+		return NULL;
+
+	fp = fopen("/proc/partitions", "r");
+	if (!fp)
+		return NULL;
+
+	while (fgets(buf, sizeof(buf), fp)) {
+		ret = sscanf(buf, "%ld %ld %ld %ms",
+			     &major, &minor, &nblocks, &devname);
+		if (ret != 4)
+			continue;
+		if ((major == info.st_dev / 256) && (minor == info.st_dev % 256)) {
+			fclose(fp);
+			return devname;
+		}
+		free(devname);
+	}
+
+	fclose(fp);
+	return NULL;
+}
+
+#define MAX_CMDLINE_LENGTH 4096
+static char *get_root_from_cmdline(void)
+{
+	char *buf;
+	FILE *fp;
+	char *root = NULL;
+	int ret;
+	char **parms = NULL;
+
+	fp = fopen("/proc/cmdline", "r");
+	if (!fp)
+		return NULL;
+	buf = (char *)calloc(1, MAX_CMDLINE_LENGTH);
+	if (!buf) {
+		fclose(fp);
+		return NULL;
+	}
+	/*
+	 * buf must be zero terminated, so let the last one
+	 * for the NULL termination
+	 */
+	ret = fread(buf, 1, MAX_CMDLINE_LENGTH - 1, fp);
+
+	/*
+	 * this is just to drop coverity issue, but
+	 * the buffer is already initialized by calloc to zeroes
+	 */
+	buf[MAX_CMDLINE_LENGTH - 1] = '\0';
+
+	if (ret > 0) {
+		parms = string_split(buf, ' ');
+		int nparms = count_string_array((const char **)parms);
+		for (unsigned int index = 0; index < nparms; index++) {
+			if (!strncmp(parms[index], "root=", strlen("root="))) {
+				const char *value = parms[index] + strlen("root=");
+				root = strdup(value);
+				break;
+			}
+		}
+	}
+	fclose(fp);
+	free_string_array(parms);
+	free(buf);
+	return root;
+}
+
+char *get_root_device(void)
+{
+	char *root = NULL;
+
+	root = get_root_from_partitions();
+	if (!root)
+		root = get_root_from_cmdline();
+
+	return root;
+}
+
+int read_lines_notify(int fd, char *buf, int buf_size, int *buf_offset,
+		      LOGLEVEL level)
+{
+	int n;
+	int offset = *buf_offset;
+	int print_last = 0;
+
+	n = read(fd, &buf[offset], buf_size - offset - 1);
+	if (n <= 0)
+		return -errno;
+
+	n += offset;
+	buf[n] = '\0';
+
+	/*
+	 * Only print the last line of the split array if it represents a
+	 * full line, as string_split (strtok) makes it impossible to tell
+	 * afterwards if the buffer ended with separator.
+	 */
+	if (buf[n-1] == '\n') {
+		print_last = 1;
+	}
+
+	char **lines = string_split(buf, '\n');
+	int nlines = count_string_array((const char **)lines);
+	/*
+	 * If the buffer is full and there is only one line,
+	 * print it anyway.
+	 */
+	if (n >= buf_size - 1 && nlines == 1)
+		print_last = 1;
+
+	/* copy leftover data for next call */
+	if (!print_last) {
+		int left = snprintf(buf, buf_size, "%s", lines[nlines-1]);
+		*buf_offset = left;
+		nlines--;
+		n -= left;
+	} else { /* no need to copy, reuse all buffer */
+		*buf_offset = 0;
+	}
+
+	for (unsigned int index = 0; index < nlines; index++) {
+		RECOVERY_STATUS status = level == ERRORLEVEL ? FAILURE : RUN;
+		swupdate_notify(status, "%s", level, lines[index]);
+	}
+
+	free_string_array(lines);
+
+	return n;
 }

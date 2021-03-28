@@ -123,32 +123,10 @@ enum {
 	SCRIPT_POSTINSTALL
 };
 
-struct swupdate_global_cfg {
-	int verbose;
-	char mtdblacklist[SWUPDATE_GENERAL_STRING_SIZE];
-	int loglevel;
-	int syslog_enabled;
-	int dry_run;
-	int no_downgrading;
-	int no_reinstalling;
-	int no_transaction_marker;
-	int no_state_marker;
-	int no_bootloader_env;
-	char publickeyfname[SWUPDATE_GENERAL_STRING_SIZE];
-	char aeskeyfname[SWUPDATE_GENERAL_STRING_SIZE];
-	char postupdatecmd[SWUPDATE_GENERAL_STRING_SIZE];
-	char preupdatecmd[SWUPDATE_GENERAL_STRING_SIZE];
-	char hookcmd[SWUPDATE_GENERAL_STRING_SIZE];
-	char default_software_set[SWUPDATE_GENERAL_STRING_SIZE];
-	char default_running_mode[SWUPDATE_GENERAL_STRING_SIZE];
-	int  default_dry_run;
-	char minimum_version[SWUPDATE_GENERAL_STRING_SIZE];
-	char current_version[SWUPDATE_GENERAL_STRING_SIZE];
-	int cert_purpose;
-	char forced_signer_name[SWUPDATE_GENERAL_STRING_SIZE];
-#if defined(CONFIG_UBUS)
-	int ubus_enabled;
-#endif
+struct swupdate_parms {
+	bool dry_run;
+	char software_set[SWUPDATE_GENERAL_STRING_SIZE];
+	char running_mode[SWUPDATE_GENERAL_STRING_SIZE];
 };
 
 struct swupdate_cfg {
@@ -157,9 +135,30 @@ struct swupdate_cfg {
 	char version[SWUPDATE_GENERAL_STRING_SIZE];
 	bool bootloader_transaction_marker;
 	bool bootloader_state_marker;
-	char software_set[SWUPDATE_GENERAL_STRING_SIZE];
-	char running_mode[SWUPDATE_GENERAL_STRING_SIZE];
 	char output[SWUPDATE_GENERAL_STRING_SIZE];
+	char publickeyfname[SWUPDATE_GENERAL_STRING_SIZE];
+	char aeskeyfname[SWUPDATE_GENERAL_STRING_SIZE];
+	char postupdatecmd[SWUPDATE_GENERAL_STRING_SIZE];
+	char preupdatecmd[SWUPDATE_GENERAL_STRING_SIZE];
+	char hookcmd[SWUPDATE_GENERAL_STRING_SIZE];
+	char minimum_version[SWUPDATE_GENERAL_STRING_SIZE];
+	char maximum_version[SWUPDATE_GENERAL_STRING_SIZE];
+	char current_version[SWUPDATE_GENERAL_STRING_SIZE];
+	char mtdblacklist[SWUPDATE_GENERAL_STRING_SIZE];
+	char forced_signer_name[SWUPDATE_GENERAL_STRING_SIZE];
+	bool syslog_enabled;
+	bool no_downgrading;
+	bool no_reinstalling;
+	bool no_transaction_marker;
+	bool no_state_marker;
+	bool no_bootloader_env;
+	bool check_max_version;
+#if defined(CONFIG_UBUS)
+	bool ubus_enabled;
+#endif
+	int verbose;
+	int loglevel;
+	int cert_purpose;
 	struct hw_type hw;
 	struct hwlist hardware;
 	struct swver installed_sw_list;
@@ -170,7 +169,7 @@ struct swupdate_cfg {
 	struct dict accepted_set;
 	struct proclist extprocs;
 	void *dgst;	/* Structure for signed images */
-	struct swupdate_global_cfg globals;
+	struct swupdate_parms parms;
 	const char *embscript;
 };
 

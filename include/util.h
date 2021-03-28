@@ -223,6 +223,8 @@ int check_hw_compatibility(struct swupdate_cfg *cfg);
 int count_elem_list(struct imglist *list);
 unsigned int count_string_array(const char **nodes);
 void free_string_array(char **nodes);
+int read_lines_notify(int fd, char *buf, int buf_size, int *buf_offset,
+		      LOGLEVEL level);
 
 /* Decryption key functions */
 int load_decryption_key(char *fname);
@@ -236,6 +238,12 @@ int set_aes_ivt(const char *ivt);
 int get_install_info(sourcetype *source, char *buf, size_t len);
 void get_install_swset(char *buf, size_t len);
 void get_install_running_mode(char *buf, size_t len);
+char *get_root_device(void);
+
+/* Setting global information */
+void set_version_range(const char *minversion,
+			const char *maxversion,
+			const char *current);
 
 unsigned long long ustrtoull(const char *cp, unsigned int base);
 

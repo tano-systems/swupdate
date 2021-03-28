@@ -209,7 +209,7 @@ static int run_prepost_scripts(struct imglist *list, script_fn type)
 	return 0;
 }
 
-int install_single_image(struct img_type *img, int dry_run)
+int install_single_image(struct img_type *img, bool dry_run)
 {
 	struct installer_handler *hnd;
 	int ret;
@@ -255,7 +255,7 @@ int install_images(struct swupdate_cfg *sw)
 	char *filename;
 	struct stat buf;
 	const char* TMPDIR = get_tmpdir();
-	int dry_run = sw->globals.dry_run;
+	bool dry_run = sw->parms.dry_run;
 	bool dropimg;
 
 	/* Extract all scripts, preinstall scripts must be run now */
@@ -353,7 +353,7 @@ int install_images(struct swupdate_cfg *sw)
 		return ret;
 	}
 
-	if (!sw->globals.no_bootloader_env && !LIST_EMPTY(&sw->bootloader)) {
+	if (!sw->no_bootloader_env && !LIST_EMPTY(&sw->bootloader)) {
 		char* bootscript = alloca(strlen(TMPDIR)+strlen(BOOT_SCRIPT_SUFFIX)+1);
 		sprintf(bootscript, "%s%s", TMPDIR, BOOT_SCRIPT_SUFFIX);
 		ret = update_bootloader_env(sw, bootscript);
@@ -454,11 +454,11 @@ void cleanup_files(struct swupdate_cfg *software) {
 int preupdatecmd(struct swupdate_cfg *swcfg)
 {
 	if (swcfg) {
-		if (swcfg->globals.dry_run) {
+		if (swcfg->parms.dry_run) {
 			DEBUG("Dry run, skipping Pre-update command");
 		} else {
 			DEBUG("Running Pre-update command");
-			return run_system_cmd(swcfg->globals.preupdatecmd);
+			return run_system_cmd(swcfg->preupdatecmd);
 		}
 	}
 
@@ -470,11 +470,11 @@ int postupdate(struct swupdate_cfg *swcfg, const char *info)
 	swupdate_progress_done(info);
 
 	if (swcfg) {
-		if (swcfg->globals.dry_run) {
+		if (swcfg->parms.dry_run) {
 			DEBUG("Dry run, skipping Post-update command");
 		} else {
 			DEBUG("Running Post-update command");
-			return run_system_cmd(swcfg->globals.postupdatecmd);
+			return run_system_cmd(swcfg->postupdatecmd);
 		}
 
 	}
@@ -485,22 +485,22 @@ int postupdate(struct swupdate_cfg *swcfg, const char *info)
 int hookcmd(struct swupdate_cfg *swcfg, const char *hook)
 {
 	if (swcfg) {
-		if (swcfg->globals.dry_run) {
+		if (swcfg->parms.dry_run) {
 			DEBUG("Dry run, skipping hook %s command", hook);
-		} else if (swcfg->globals.hookcmd[0]) {
+		} else if (swcfg->hookcmd[0]) {
 			char cmd[SWUPDATE_GENERAL_STRING_SIZE];
 
 			snprintf(cmd, sizeof(cmd),
 				"%s %s %s %s",
-				swcfg->globals.hookcmd,
+				swcfg->hookcmd,
 				hook,
-				swcfg->software_set,
-				swcfg->running_mode);
+				swcfg->parms.software_set,
+				swcfg->parms.running_mode);
 
 			DEBUG("Running hook %s command", hook);
 
-			setenv("SWU_SOFTWARE_SET", swcfg->software_set, 1);
-			setenv("SWU_RUNNING_MODE", swcfg->running_mode, 1);
+			setenv("SWU_SOFTWARE_SET", swcfg->parms.software_set, 1);
+			setenv("SWU_RUNNING_MODE", swcfg->parms.running_mode, 1);
 
 			return run_system_cmd(cmd);
 		}

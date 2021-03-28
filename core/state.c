@@ -40,7 +40,7 @@ static int do_save_state(struct swupdate_cfg const *sw, char *key, char* value)
 	if (c < STATE_OK || c > STATE_LAST)
 		return -EINVAL;
 
-	if (sw && sw->globals.no_bootloader_env)
+	if (sw && sw->no_bootloader_env)
 		return 0;
 
 	return bootloader_env_set(key, value);
@@ -66,7 +66,7 @@ static update_state_t read_state(struct swupdate_cfg const *sw, char *key)
 {
 	CHECK_STATE_VAR(key);
 
-	if (sw && sw->globals.no_bootloader_env)
+	if (sw && sw->no_bootloader_env)
 		return STATE_OK;
 
 	char *envval = bootloader_env_get(key);

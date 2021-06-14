@@ -204,7 +204,7 @@ int syslog_init(void);
 #if defined(CONFIG_UBUS)
 int ubus_init(const char *ubus_socket);
 void ubus_stop(void);
-struct progress_msg *msg;
+struct progress_msg;
 void ubus_notify_progress(struct progress_msg *msg);
 #endif
 

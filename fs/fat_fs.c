@@ -2,20 +2,20 @@
  * Copyright (C) 2021 Weidmueller Interface GmbH & Co. KG
  * Roland Gaudig <roland.gaudig@weidmueller.com>
  *
- * SPDX-License-Identifier:     GPL-2.0-or-later
+ * SPDX-License-Identifier:     GPL-2.0-only
  */
 
 #include <errno.h>
 #include <stddef.h>
 
-#include <fatfs_interface.h>
+#include <fs_interface.h>
 #include <swupdate.h>
 #include <util.h>
 
 #include "ff.h"
 
 
-int fat_mkfs(char *device_name)
+int fat_mkfs(const char *device_name, const char __attribute__ ((__unused__)) *fstype)
 {
 	if (fatfs_init(device_name))
 		return -1;

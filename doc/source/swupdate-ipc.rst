@@ -60,9 +60,9 @@ will be ignored until a new REQ_INSTALL will be received.
 
 It is recommended to use the client library to communicate with SWUpdate. On the lower
 level with direct socket communication, it cannot be guaranteed that the structures
-will remain compatible in future. The client library was affected by this issue, too, and it is
-changed to accept an opaque interface that will survive to API changes. Compatibility
-layers could be added on bedarf in future due to API changes.
+will remain compatible in the future. The client library was affected by this issue, too, and it is
+changed to accept an opaque interface that will survive API changes. Compatibility
+layers could be added on-demand in the future due to API changes.
 
 
 Client Library
@@ -118,7 +118,7 @@ A user should first call `swupdate_prepare_req()`
 
         void swupdate_prepare_req(struct swupdate_request *req);
 
-This fills the request sturcture with default values. After that, the user can fill the
+This fills the request structure with default values. After that, the user can fill the
 other fields as:
 
         - *sourcetype* : one of SOURCE_UNKNOWN, SOURCE_WEBSERVER,
@@ -126,7 +126,7 @@ other fields as:
         - *dry_run* : one of RUN_DEFAULT (set from command line), RUN_DRYRUN, RUN_INSTALL.
         - *info, len* : a variable length data that can be forwarded to the progress
           interface. The installer in SWUpdate does not evaluate it.
-        - *software_set* and *running_mode* : this allows to set the `selection` fot the update.
+        - *software_set* and *running_mode* : this allows one to set the `selection` for the update.
 
 Functions to set AES keys
 -------------------------
@@ -192,6 +192,26 @@ Enable / disable Suricatta daemon
         { "enable" : true }
         { "enable" : false }
 
+Set custom device attributes for Suricatta (for Hawkbit implementation)
+.......................................................................
+
+::
+
+        { "identify" : [
+            {
+                "name"  : "customizableAttributeOne",
+                "value" : "valueOne"
+            },
+            {
+                "name"  : "customizableAttributeTwo",
+                "value" : "valueTwo"
+            }
+        ]}
+
+New attributes can be added at runtime, and existing attributes can be modified in the same
+way. Changes will be reflected on the server in the next poll iteration.
+
+
 Trigger a check on the server
 .............................
 
@@ -211,7 +231,7 @@ Activate an already installed Software
 
 After a software was installed, the new software boots and if everything runs fine,
 an acknowledge should be sent to the hawkBit server. If this feature is used, for example
-to let the end user decide if the new software is accepted, the paramters used by the installation
+to let the end user decide if the new software is accepted, the parameters used by the installation
 should be stored during the update process.
 
 ::
@@ -393,5 +413,3 @@ Example:
 		"name": "rootfs.ext4.gz",
 		"percent": "18"
 	}
-			
-

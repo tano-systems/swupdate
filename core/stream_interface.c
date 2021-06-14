@@ -3,7 +3,7 @@
  * Stefano Babic, DENX Software Engineering, sbabic@denx.de.
  * 	on behalf of ifm electronic GmbH
  *
- * SPDX-License-Identifier:     GPL-2.0-or-later
+ * SPDX-License-Identifier:     GPL-2.0-only
  */
 
 #include <stdio.h>
@@ -230,6 +230,8 @@ static int extract_files(int fd, struct swupdate_cfg *software)
 				}
 				fdout = openfileoutput(img->extract_file);
 				if (fdout < 0)
+					return -1;
+				if (!img_check_free_space(img, fdout))
 					return -1;
 				if (copyfile(fd, &fdout, fdh.size, &offset, 0, 0, 0, &checksum, img->sha256, false, NULL, NULL) < 0) {
 					close(fdout);
@@ -518,10 +520,11 @@ void *network_initializer(void *data)
 	/* fork off the local dialogs and network service */
 	network_thread_id = start_thread(network_thread, &inst);
 
+	TRACE("Main loop daemon");
+	thread_ready();
 	/* handle installation requests (from either source) */
 	while (1) {
 		ret = 0;
-		TRACE("Main loop Daemon");
 
 		/* wait for someone to issue an install request */
 		pthread_mutex_lock(&stream_mutex);
@@ -529,6 +532,7 @@ void *network_initializer(void *data)
 		inst.status = RUN;
 		pthread_mutex_unlock(&stream_mutex);
 		notify(START, RECOVERY_NO_ERROR, INFOLEVEL, "Software Update started !");
+		TRACE("Software update started");
 
 		req = &inst.req;
 

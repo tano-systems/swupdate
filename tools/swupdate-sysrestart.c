@@ -2,7 +2,7 @@
  * (C) Copyright 2016
  * Stefano Babic, DENX Software Engineering, sbabic@denx.de.
  *
- * SPDX-License-Identifier:     GPL-2.0-or-later
+ * SPDX-License-Identifier:     GPL-2.0-only
  */
 
 #include <stdio.h>
@@ -24,7 +24,6 @@
 #include <getopt.h>
 #include <ifaddrs.h>
 #include <netdb.h>
-#include <linux/if_link.h>
 
 #if defined(CONFIG_CURL)
 #include <curl/curl.h>
@@ -270,4 +269,3 @@ int main(int __attribute__((__unused__)) argc, char __attribute__((__unused__)) 
 	exit(1);
 }
 #endif
-	

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2013 Stefano Babic <sbabic@denx.de>
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
 # ==========================================================================
 # Build system
 # ==========================================================================
@@ -16,7 +20,7 @@ endif
 KBUILD_CPPFLAGS += $(call cc-option,-std=gnu99,)
 
 KBUILD_CPPFLAGS += -D_GNU_SOURCE -DNDEBUG \
-		   -D"SWU_VER=KBUILD_STR($(SWU_VER))"
+		   -D"SWU_VER=\"$(SWU_VER)\""
 
 KBUILD_CFLAGS += $(call cc-option,-Wall,)
 KBUILD_CFLAGS += $(call cc-option,-Wshadow,)
@@ -116,7 +120,7 @@ endif
 ifeq ($(CONFIG_LUA),y)
 ifeq ($(CONFIG_HANDLER_IN_LUA),y)
 ifeq ($(CONFIG_EMBEDDED_LUA_HANDLER),y)
-ifneq ($(CONFIG_EMBEDDED_LUA_HANDLER_SOURCE),)	
+ifneq ($(CONFIG_EMBEDDED_LUA_HANDLER_SOURCE),)
 LDFLAGS_swupdate += -Wl,--format=binary -Wl,$(CONFIG_EMBEDDED_LUA_HANDLER_SOURCE) -Wl,--format=default
 KBUILD_CPPFLAGS += -DEMBEDDED_LUA_SRC_START="_binary_$(subst ",,$(subst .,_,$(subst /,_,$(CONFIG_EMBEDDED_LUA_HANDLER_SOURCE))))_start"
 KBUILD_CPPFLAGS += -DEMBEDDED_LUA_SRC_END="_binary_$(subst ",,$(subst .,_,$(subst /,_,$(CONFIG_EMBEDDED_LUA_HANDLER_SOURCE))))_end"
@@ -179,6 +183,10 @@ endif
 
 ifeq ($(CONFIG_DISKPART),y)
 LDLIBS += fdisk
+endif
+
+ifeq ($(CONFIG_EXT_FILESYSTEM),y)
+LDLIBS += ext2fs uuid blkid
 endif
 
 ifeq ($(CONFIG_UNIQUEUUID),y)

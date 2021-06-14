@@ -2,7 +2,7 @@
  * (C) Copyright 2012-2016
  * Stefano Babic, DENX Software Engineering, sbabic@denx.de.
  *
- * SPDX-License-Identifier:     GPL-2.0-or-later
+ * SPDX-License-Identifier:     GPL-2.0-only
  */
 
 #ifndef _UTIL_H
@@ -192,7 +192,6 @@ int copyfile(int fdin, void *out, unsigned int nbytes, unsigned long *offs,
 	int skip_file, int compressed, uint32_t *checksum,
 	unsigned char *hash, bool encrypted, const char *imgivt, writeimage callback);
 int copyimage(void *out, struct img_type *img, writeimage callback);
-int extract_sw_description(int fd, const char *descfile, off_t *offs, bool encrypted);
 off_t extract_next_file(int fd, int fdout, off_t start, int compressed,
 			int encrypted, char *ivt, unsigned char *hash);
 int openfileoutput(const char *filename);
@@ -225,6 +224,8 @@ unsigned int count_string_array(const char **nodes);
 void free_string_array(char **nodes);
 int read_lines_notify(int fd, char *buf, int buf_size, int *buf_offset,
 		      LOGLEVEL level);
+long long get_output_size(struct img_type *img, bool strict);
+bool img_check_free_space(struct img_type *img, int fd);
 
 /* Decryption key functions */
 int load_decryption_key(char *fname);

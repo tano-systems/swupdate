@@ -2,7 +2,7 @@
  * (C) Copyright 2013
  * Stefano Babic, DENX Software Engineering, sbabic@denx.de.
  *
- * SPDX-License-Identifier:     GPL-2.0-or-later
+ * SPDX-License-Identifier:     GPL-2.0-only
  */
 
 #include <sys/types.h>
@@ -199,46 +199,6 @@ static int check_ubi_alwaysremove(struct img_type *img)
 	return ret;
 }
 
-static long long get_output_size(struct img_type *img)
-{
-	char *output_size_str = NULL;
-	long long bytes = img->size;
-
-	if (img->compressed) {
-		output_size_str = dict_get_value(&img->properties, "decompressed-size");
-
-		bytes = ustrtoull(output_size_str, 0);
-		if (errno) {
-			ERROR("decompressed-size argument: ustrtoull failed");
-			return -1;
-		}
-
-		if (bytes == 0) {
-			ERROR("UBIFS to be decompressed, but decompressed-size not valid");
-			return -1;
-		}
-		TRACE("Image is compressed, decompressed size %lld bytes", bytes);
-
-	} else if (img->is_encrypted) {
-
-		output_size_str = dict_get_value(&img->properties, "decrypted-size");
-
-		bytes = ustrtoull(output_size_str, 0);
-		if (errno){
-			ERROR("decrypted-size argument: ustrtoull failed");
-			return -1;
-		}
-
-		if (bytes < AES_BLK_SIZE) {
-			ERROR("Encrypted image size (%lld) too small", bytes);
-			return -1;
-		}
-		TRACE("Image is crypted, decrypted size %lld bytes", bytes);
-	}
-
-	return bytes;
-}
-
 static int update_volume(libubi_t libubi, struct img_type *img,
 	struct ubi_vol_info *vol)
 {
@@ -249,7 +209,7 @@ static int update_volume(libubi_t libubi, struct img_type *img,
 	char sbuf[128];
 	struct ubi_vol_info *repl_vol;
 
-	bytes = get_output_size(img);
+	bytes = get_output_size(img, true);
 	if (bytes <= 0)
 		return -1;
 
@@ -503,7 +463,7 @@ static int install_ubivol_image(struct img_type *img,
 	int ret;
 
 	if (check_ubi_autoresize(img)) {
-		long long bytes = get_output_size(img);
+		long long bytes = get_output_size(img, true);
 		if (bytes <= 0)
 			return -1;
 

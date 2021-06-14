@@ -2,7 +2,7 @@
  * (C) Copyright 2015-2016
  * Stefano Babic, DENX Software Engineering, sbabic@denx.de.
  *
- * SPDX-License-Identifier:     GPL-2.0-or-later
+ * SPDX-License-Identifier:     GPL-2.0-only
  */
 
 #include <limits.h>
@@ -1016,7 +1016,7 @@ int parse_json(struct swupdate_cfg *swcfg, const char *filename)
 		return -EBADF;
 
 	size = stbuf.st_size;
-	string = (char *)malloc(size);
+	string = (char *)malloc(size+1);
 	if (!string)
 		return -ENOMEM;
 
@@ -1028,6 +1028,15 @@ int parse_json(struct swupdate_cfg *swcfg, const char *filename)
 
 	ret = read(fd, string, size);
 	close(fd);
+	if (ret < 0) {
+		ret = -errno;
+		free(string);
+		return ret;
+	}
+	if (ret != size) {
+		ERROR("partial read of %s, proceeding anyway", filename);
+	}
+	string[ret] = '\0';
 
 	cfg = json_tokener_parse(string);
 	if (!cfg) {

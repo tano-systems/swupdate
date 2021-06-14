@@ -3,7 +3,7 @@
  * Stefano Babic, DENX Software Engineering, sbabic@denx.de.
  * 	on behalf of ifm electronic GmbH
  *
- * SPDX-License-Identifier:     GPL-2.0-or-later
+ * SPDX-License-Identifier:     GPL-2.0-only
  */
 
 #include <stdio.h>
@@ -333,6 +333,7 @@ static void handle_subprocess_ipc(struct subprocess_msg_elem *subprocess_msg)
 static void *subprocess_thread (void *data)
 {
 	(void)data;
+	thread_ready();
 	pthread_mutex_lock(&subprocess_msg_lock);
 
 	while(1) {
@@ -394,6 +395,7 @@ void *network_thread (void *data)
 			  get_ctrl_socket());
 	}
 
+	thread_ready();
 	do {
 		clilen = sizeof(cliaddr);
 		if ( (ctrlconnfd = accept(ctrllisten, (struct sockaddr *) &cliaddr, &clilen)) < 0) {

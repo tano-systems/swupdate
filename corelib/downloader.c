@@ -2,7 +2,7 @@
  * (C) Copyright 2015
  * Stefano Babic, DENX Software Engineering, sbabic@denx.de.
  *
- * SPDX-License-Identifier:     GPL-2.0-or-later
+ * SPDX-License-Identifier:     GPL-2.0-only
  */
 
 #include <stdlib.h>
@@ -54,7 +54,9 @@ static RECOVERY_STATUS download_from_url(channel_data_t* channel_data)
 	if (chanresult != CHANNEL_OK) {
 		result = FAILURE;
 	}
-	ipc_wait_for_complete(NULL);
+	if (ipc_wait_for_complete(NULL) != SUCCESS) {
+		result = FAILURE;
+	}
 	channel->close(channel);
 	free(channel);
 	return result;

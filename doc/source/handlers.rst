@@ -436,9 +436,12 @@ a possible setup using a remote handler could be:
         )
 
 
-The connection is instantiated using the socket "/tmp/test_remote". If
-connect() fails, the remote handler signals that the update is not successful.
-Each Zeromq Message from SWUpdate is a multi-part message split into two frames:
+The connection is instantiated using the socket ``test_remote`` (according
+to the "data" field's value) in the directory pointed to by the environment
+variable ``TMPDIR`` with ``/tmp`` as fall-back if ``TMPDIR`` is not set.
+If ``connect()`` fails, the  remote handler signals that the update is not
+successful. Each zeromq message  from SWUpdate is a multi-part message split
+into two frames:
 
         - first frame contains a string with a command.
         - second frame contains data and can be of 0 bytes.
@@ -761,7 +764,7 @@ This handler creates or modifies partitions using the library libfdisk. Handler 
 the `partitions` section of sw-description. Setup for each partition is put into the `properties` field
 of sw-description.
 After writing the partition table it may create a file system on selected partitions.
-(Availlable only if CONFIG_DISKFORMAT is set.)
+(Available only if CONFIG_DISKFORMAT is set.)
 
 .. table:: Properties for diskpart handler
 
@@ -795,7 +798,7 @@ supported:
    | fstype      | string   | Optional filesystem type to be created on the      |
    |             |          | partition. If no fstype key is given, no file      |
    |             |          | will be created on the corresponding partition.    |
-   |             |          | (currently only `vfat` file system is supported)   |
+   |             |          | vfat / ext2 / ext3 /ext4 file system is supported  |
    +-------------+----------+----------------------------------------------------+
 
 
@@ -816,7 +819,7 @@ GPT example:
                     "name=ldata", "type=EBD0A0A2-B9E5-4433-87C0-68B6B72699C7",
 		    "fstype=vfat"];
                 partition-3 = ["size=512M", "start=657408",
-                    "name=log", "type=0FC63DAF-8483-4772-8E79-3D69D8477DE4"];
+                    "name=log", "fstype =ext4", 63DAF-8483-4772-8E79-3D69D8477DE4"];
                 partition-4 = ["size=4G", "start=1705984",
                     "name=system",  "type=0FC63DAF-8483-4772-8E79-3D69D8477DE4"];
                 partition-5 = ["size=512M", "start=10094592",

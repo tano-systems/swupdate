@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2013 Stefano Babic <sbabic@denx.de>
+
+SPDX-License-Identifier: GPL-2.0-only
+-->
+
 <p align ="center"><img src=SWUpdate.svg width=200 height=200 /></p>
 
 SWUpdate - Software Update for Embedded Linux Devices
@@ -40,7 +46,7 @@ SWUpdate is a framework with a lot of configurable options:
 - Fail safe and atomic update
 - Lua interpreter to extend the update rules on your needs
 - Hardware / Software compatibility.
-- Small footprint to generate a rescue system to restore the device. 
+- Small footprint to generate a rescue system to restore the device.
 - Cryptographic sign and verification of updates
 	- support for OpenSSL
 	- support for mbedTLS
@@ -66,7 +72,7 @@ the [meta-swupdate](https://layers.openembedded.org/layerindex/branch/master/lay
 It is also integrated in [Buildroot](https://github.com/buildroot/buildroot/blob/master/package/swupdate/swupdate.config).
 Debian (and Debian-like distributions) has merged a [package](https://packages.debian.org/unstable/swupdate).
 
-Examples using meta-swupdate with evaluation boards (Beaglebone, RPI3) are provided in 
+Examples using meta-swupdate with evaluation boards (Beaglebone, RPI3) are provided in
 [meta-swupdate-boards](https://layers.openembedded.org/layerindex/branch/master/layer/meta-swupdate-boards/) layer.
 
 ## License
@@ -74,7 +80,7 @@ Examples using meta-swupdate with evaluation boards (Beaglebone, RPI3) are provi
 SWUpdate is released under GPLv2. A library to control SWUpdate is part of the
 project and it is released under LGPLv2.1.
 License information for any file is either explicitly stated
-or defaults to GPL version 2.0+. Extension written in Lua are subjected to
+or defaults to GPL version 2.0. Extension written in Lua are subjected to
 Lua license (MIT).
 
 ## Community support

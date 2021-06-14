@@ -633,11 +633,27 @@ Mandatory arguments are marked with '\*':
 | --disable-token-for-dwl | -        | Do not send authentication header when     |
 |                         |          | downloading SWU.                           |
 +-------------------------+----------+--------------------------------------------+
-| --cache-file            | string   | This allow to resume an update after a     |
+| --cache-file            | string   | This allows one to resume an update after a|
 |                         |          | power cut. If the SWU is saved in a file,  |
 |                         |          | SWUpdate can reuse the file and download   |
 |                         |          | just the remaining part of the SWU.        |
 +-------------------------+----------+--------------------------------------------+
+| -m <seconds>            | integer  | Delay in seconds between re-trying to send |
+|                         |          | initial feedback specified with "-c"       |
+|                         |          | option. Default value is 10 seconds. If    |
+|                         |          | Suricatta is started with initial state of |
+|                         |          | STATE_WAIT ("-c 6"), this value is ignored.|
++-------------------------+----------+--------------------------------------------+
+| -s <seconds>            | integer  | Connection timeout to use in seconds.      |
+|                         |          | If user doesn't set this option, default   |
+|                         |          | libcurl connection timeout value of 300    |
+|                         |          | seconds is used.                           |
+|                         |          | NOTE: it is not possible for Suricatta to  |
+|                         |          | respond to external program API requests   |
+|                         |          | during this period - adapt this value to   |
+|                         |          | your use case!                             |
++-------------------------+----------+--------------------------------------------+
+
 
 systemd Integration
 -------------------

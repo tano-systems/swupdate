@@ -2,7 +2,7 @@
  * Author: Christian Storm
  * Copyright (C) 2016, Siemens AG
  *
- * SPDX-License-Identifier:     GPL-2.0-or-later
+ * SPDX-License-Identifier:     GPL-2.0-only
  */
 
 #include <stdio.h>
@@ -50,6 +50,8 @@ static struct option long_options[] = {
     {"interface", required_argument, NULL, 'f'},
     {"disable-token-for-dwl", no_argument, NULL, '1'},
     {"cache", required_argument, NULL, '2'},
+    {"initial-report-resend-period", required_argument, NULL, 'm'},
+	{"connection-timeout", required_argument, NULL, 's'},
     {NULL, 0, NULL, 0}};
 
 static unsigned short mandatory_argument_count = 0;
@@ -129,7 +131,8 @@ static channel_data_t channel_data_defaults = {.debug = false,
 					       .format = CHANNEL_PARSE_JSON,
 					       .nocheckanswer = false,
 					       .nofollow = false,
-					       .strictssl = true
+					       .strictssl = true,
+						   .connection_timeout = 0
 						};
 
 static struct timeval server_time;
@@ -1664,9 +1667,13 @@ void server_print_help(void)
 	    "\t  -g, --gatewaytoken  Set gateway token.\n"
 	    "\t  -f, --interface     Set the network interface to connect to hawkBit.\n"
 	    "\t  --disable-token-for-dwl Do not send authentication header when downlloading SWU.\n"
-	    "\t  --cache <file>      Use cache file as starting SWU\n",
+	    "\t  --cache <file>      Use cache file as starting SWU\n"
+		"\t  -m, --initial-report-resend-period <seconds> Time to wait prior to retry "
+		"sending initial state with '-c' option (default: %ds).\n"
+		"\t  -s, --connection-timeout Set the server connection timeout (default: 300s).\n",
 	    CHANNEL_DEFAULT_POLLING_INTERVAL, CHANNEL_DEFAULT_RESUME_TRIES,
-	    CHANNEL_DEFAULT_RESUME_DELAY);
+	    CHANNEL_DEFAULT_RESUME_DELAY,
+	    INITIAL_STATUS_REPORT_WAIT_DELAY);
 }
 
 static int server_hawkbit_settings(void *elem, void  __attribute__ ((__unused__)) *data)
@@ -1692,10 +1699,16 @@ static int server_hawkbit_settings(void *elem, void  __attribute__ ((__unused__)
 	get_field(LIBCFG_PARSER, elem, "polldelay",
 		&server_hawkbit.polling_interval);
 
+	get_field(LIBCFG_PARSER, elem, "initial-report-resend-period",
+		&server_hawkbit.initial_report_resend_period);
+
 	suricatta_channel_settings(elem, &channel_data_defaults);
 
 	get_field(LIBCFG_PARSER, elem, "usetokentodwl",
 		&server_hawkbit.usetokentodwl);
+
+	get_field(LIBCFG_PARSER, elem, "connection-timeout",
+		&channel_data_defaults.connection_timeout);
 
 	GET_FIELD_STRING_RESET(LIBCFG_PARSER, elem, "targettoken", tmp);
 	if (strlen(tmp))
@@ -1717,6 +1730,7 @@ server_op_res_t server_start(char *fname, int argc, char *argv[])
 
 	LIST_INIT(&server_hawkbit.configdata);
 
+	server_hawkbit.initial_report_resend_period = INITIAL_STATUS_REPORT_WAIT_DELAY;
 	if (fname) {
 		swupdate_cfg_handle handle;
 		swupdate_cfg_init(&handle);
@@ -1743,7 +1757,7 @@ server_op_res_t server_start(char *fname, int argc, char *argv[])
 	/* reset to optind=1 to parse suricatta's argument vector */
 	optind = 1;
 	opterr = 0;
-	while ((choice = getopt_long(argc, argv, "t:i:c:u:p:xr:y::w:k:g:f:2:",
+	while ((choice = getopt_long(argc, argv, "t:i:c:u:p:xr:y::w:k:g:f:2:m:s:",
 				     long_options, NULL)) != -1) {
 		switch (choice) {
 		case 't':
@@ -1828,6 +1842,14 @@ server_op_res_t server_start(char *fname, int argc, char *argv[])
 		case '2':
 			SETSTRING(server_hawkbit.cached_file, optarg);
 			break;
+		case 'm':
+			server_hawkbit.initial_report_resend_period =
+				(unsigned int)strtoul(optarg, NULL, 10);
+			break;
+		case 's':
+			channel_data_defaults.connection_timeout =
+				(unsigned int)strtoul(optarg, NULL, 10);
+			break;
 		/* Ignore not recognized options, they can be already parsed by the caller */
 		case '?':
 			break;
@@ -1874,11 +1896,9 @@ server_op_res_t server_start(char *fname, int argc, char *argv[])
 	}
 	/* If an update was performed, report its status to the hawkBit server
 	 * prior to entering the main loop. May run indefinitely if server is
-	 * unavailable. In case of an error, the error is returned to the main
-	 * loop, thereby exiting suricatta. */
-	server_op_res_t state_handled;
+	 * unavailable.
+	 */
 	server_hawkbit.update_state = update_state;
-
 
 	/*
 	 * After a successful startup, a configData is always sent
@@ -1891,15 +1911,10 @@ server_op_res_t server_start(char *fname, int argc, char *argv[])
 	 * by an external process and we have to wait for it
 	 */
 	if (update_state != STATE_WAIT) {
-		while ((state_handled = server_handle_initial_state(update_state)) !=
-		       SERVER_OK) {
-			if (state_handled == SERVER_EAGAIN) {
-				INFO("Sleeping for %ds until retrying...",
-				     INITIAL_STATUS_REPORT_WAIT_DELAY);
-				sleep(INITIAL_STATUS_REPORT_WAIT_DELAY);
-				continue;
-			}
-			return state_handled; /* Report error to main loop, exiting. */
+		while (server_handle_initial_state(update_state) != SERVER_OK) {
+			INFO("Sleeping for %ds until retrying...",
+				server_hawkbit.initial_report_resend_period);
+			sleep(server_hawkbit.initial_report_resend_period);
 		}
 	}
 
@@ -2029,6 +2044,19 @@ cleanup:
 	return result;
 }
 
+static void server_set_additional_device_attributes_ipc(json_object* json_data)
+{
+	for (int i = 0; i < json_object_array_length(json_data); ++i) {
+		json_object* attr_obj = json_object_array_get_idx(json_data, i);
+		json_object* attr_key_data = json_get_path_key(attr_obj, (const char *[]){"name", NULL});
+		json_object* attr_value_data = json_get_path_key(attr_obj, (const char *[]){"value", NULL});
+
+		const char* key = json_object_get_string(attr_key_data);
+		const char* value = json_object_get_string(attr_value_data);
+		dict_set_value(&server_hawkbit.configdata, key, value);
+	}
+}
+
 static server_op_res_t server_configuration_ipc(ipc_message *msg)
 {
 	struct json_object *json_root;
@@ -2049,6 +2077,14 @@ static server_op_res_t server_configuration_ipc(ipc_message *msg)
 			server_hawkbit.polling_interval = polling;
 		} else
 			server_hawkbit.polling_interval_from_server = true;
+	}
+
+	json_data = json_get_path_key(
+		json_root, (const char*[]){"identify", NULL});
+
+	if (json_data) {
+		server_set_additional_device_attributes_ipc(json_data);
+		server_hawkbit.has_to_send_configData = true;
 	}
 
 	return SERVER_OK;

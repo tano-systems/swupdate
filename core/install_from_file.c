@@ -2,7 +2,7 @@
  * (C) Copyright 2020
  * Stefano Babic, DENX Software Engineering, sbabic@denx.de.
  *
- * SPDX-License-Identifier:     GPL-2.0-or-later
+ * SPDX-License-Identifier:     GPL-2.0-only
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,6 +54,14 @@ static int endupdate(RECOVERY_STATUS status)
 	INFO("Swupdate %s\n",
 		status == FAILURE ? "*failed* !" :
 			"was successful !");
+
+	if (status == SUCCESS) {
+		ipc_message msg;
+		msg.data.procmsg.len = 0;
+		if (ipc_postupdate(&msg) != 0 || msg.type != ACK) {
+			end_status = EXIT_FAILURE;
+		}
+	}
 
 	pthread_mutex_lock(&mymutex);
 	pthread_cond_signal(&cv_end);

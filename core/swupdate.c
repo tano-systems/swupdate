@@ -2,7 +2,7 @@
  * (C) Copyright 2012-2016
  * Stefano Babic, DENX Software Engineering, sbabic@denx.de.
  *
- * SPDX-License-Identifier:     GPL-2.0-or-later
+ * SPDX-License-Identifier:     GPL-2.0-only
  */
 
 #include <stdio.h>
@@ -899,6 +899,9 @@ int main(int argc, char **argv)
 	network_daemon = start_thread(network_initializer, &swcfg);
 
 	start_thread(progress_bar_thread, NULL);
+
+	/* wait for threads to be done before starting children */
+	wait_threads_ready();
 
 	/* Start embedded web server */
 #if defined(CONFIG_MONGOOSE)

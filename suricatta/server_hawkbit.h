@@ -2,7 +2,7 @@
  * Author: Christian Storm
  * Copyright (C) 2016, Siemens AG
  *
- * SPDX-License-Identifier:     GPL-2.0-or-later
+ * SPDX-License-Identifier:     GPL-2.0-only
  */
 
 #pragma once
@@ -43,6 +43,7 @@ typedef struct {
 	char *gatewaytoken;
 	char *cached_file;
 	bool usetokentodwl;
+	unsigned int initial_report_resend_period;
 } server_hawkbit_t;
 
 extern server_hawkbit_t server_hawkbit;

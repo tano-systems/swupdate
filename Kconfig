@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2013 Stefano Babic <sbabic@denx.de>
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
 #
 # For a description of the syntax of this configuration file,
 # see scripts/kbuild/config-language.txt.
@@ -201,13 +205,6 @@ config SOCKET_PROGRESS_PATH
 	string "SWUpdate progress socket path"
 	help
 	  Path to the socket progress information is sent to.
-
-config SOCKET_REMOTE_HANDLER_DIRECTORY
-	string "SWUpdate remote handler socket directory"
-	default "/tmp/"
-	help
-	  Directory where sockets to remote handler processes
-	  are expected to be found.
 
 config SOCKET_NOTIFIER_DIRECTORY
 	string "SWUpdate notifier socket directory"
@@ -467,6 +464,10 @@ config CMS_IGNORE_EXPIRED_CERTIFICATE
 
 config CMS_IGNORE_CERTIFICATE_PURPOSE
 	bool "Ignore X.509 certificate purpose"
+	depends on SIGALG_CMS
+
+config CMS_SKIP_UNKNOWN_SIGNERS
+	bool "Ignore unverifiable signatures if known signer verifies"
 	depends on SIGALG_CMS
 endmenu
 

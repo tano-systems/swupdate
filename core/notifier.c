@@ -2,7 +2,7 @@
  * (C) Copyright 2013-2016
  * Stefano Babic, DENX Software Engineering, sbabic@denx.de.
  *
- * SPDX-License-Identifier:     GPL-2.0-or-later
+ * SPDX-License-Identifier:     GPL-2.0-only
  */
 
 #include <stdio.h>
@@ -368,7 +368,7 @@ static void unlink_socket(void)
 
 static void setup_socket_cleanup(struct sockaddr_un *addr)
 {
-	socket_path = strndupa(addr->sun_path, sizeof(addr->sun_path));
+	socket_path = strndup(addr->sun_path, sizeof(addr->sun_path));
 	if (atexit(unlink_socket) != 0) {
 		TRACE("Cannot setup socket cleanup on exit, %s won't be unlinked.", socket_path);
 	}
@@ -448,6 +448,7 @@ static void *notifier_thread (void __attribute__ ((__unused__)) *data)
 			break;
 	} while (1);
 
+	thread_ready();
 	do {
 		len =  recvfrom(serverfd, &msg, sizeof(msg), 0, NULL, NULL);
 		/*

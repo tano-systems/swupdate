@@ -2,7 +2,7 @@
  * (C) Copyright 2013
  * Stefano Babic, DENX Software Engineering, sbabic@denx.de.
  *
- * SPDX-License-Identifier:     GPL-2.0-or-later
+ * SPDX-License-Identifier:     GPL-2.0-only
  */
 
 #include <stdio.h>
@@ -24,6 +24,11 @@
 #include <libgen.h>
 #include <regex.h>
 #include <string.h>
+#include <dirent.h>
+
+#if defined(__linux__)
+#include <sys/statvfs.h>
+#endif
 
 #include "swupdate.h"
 #include "util.h"
@@ -847,6 +852,10 @@ size_t snescape(char *dst, size_t n, const char *src)
 /*
  * This returns the device name where rootfs is mounted
  */
+
+static int filter_slave(const struct dirent *ent) {
+	return (strcmp(ent->d_name, ".") && strcmp(ent->d_name, ".."));
+}
 static char *get_root_from_partitions(void)
 {
 	struct stat info;
@@ -854,10 +863,27 @@ static char *get_root_from_partitions(void)
 	char *devname = NULL;
 	unsigned long major, minor, nblocks;
 	char buf[256];
-	int ret;
+	int ret, dev_major, dev_minor, n;
+	struct dirent **devlist = NULL;
 
 	if (stat("/", &info) < 0)
 		return NULL;
+
+	dev_major = info.st_dev / 256;
+	dev_minor = info.st_dev % 256;
+
+	/*
+	 * Check if this is just a container, for example in case of LUKS
+	 * Search if the device has slaves pointing to another device
+	 */
+	snprintf(buf, sizeof(buf) - 1, "/sys/dev/block/%d:%d/slaves", dev_major, dev_minor);
+	n = scandir(buf, &devlist, filter_slave, NULL);
+	if (n == 1) {
+		devname = strdup(devlist[0]->d_name);
+		free(devlist);
+		return devname;
+	}
+	free(devlist);
 
 	fp = fopen("/proc/partitions", "r");
 	if (!fp)
@@ -868,7 +894,7 @@ static char *get_root_from_partitions(void)
 			     &major, &minor, &nblocks, &devname);
 		if (ret != 4)
 			continue;
-		if ((major == info.st_dev / 256) && (minor == info.st_dev % 256)) {
+		if ((major == dev_major) && (minor == dev_minor)) {
 			fclose(fp);
 			return devname;
 		}
@@ -877,6 +903,32 @@ static char *get_root_from_partitions(void)
 
 	fclose(fp);
 	return NULL;
+}
+
+/*
+ * Return the rootfs's device name from /proc/self/mountinfo.
+ * Needed for filesystems having synthetic stat(2) st_dev
+ * values such as BTRFS.
+ */
+static char *get_root_from_mountinfo(void)
+{
+	char *mnt_point, *device = NULL;
+	FILE *fp = fopen("/proc/self/mountinfo", "r");
+	while (fp && !feof(fp)){
+		/* format: https://www.kernel.org/doc/Documentation/filesystems/proc.txt */
+		if (fscanf(fp, "%*s %*s %*u:%*u %*s %ms %*s %*[-] %*s %ms %*s",
+			   &mnt_point, &device) == 2) {
+			if ( (!strcmp(mnt_point, "/")) && (strcmp(device, "none")) ) {
+				free(mnt_point);
+				break;
+			}
+			free(mnt_point);
+			free(device);
+		}
+		device = NULL;
+	}
+	(void)fclose(fp);
+	return device;
 }
 
 #define MAX_CMDLINE_LENGTH 4096
@@ -932,6 +984,8 @@ char *get_root_device(void)
 	root = get_root_from_partitions();
 	if (!root)
 		root = get_root_from_cmdline();
+	if (!root)
+		root = get_root_from_mountinfo();
 
 	return root;
 }
@@ -986,4 +1040,91 @@ int read_lines_notify(int fd, char *buf, int buf_size, int *buf_offset,
 	free_string_array(lines);
 
 	return n;
+}
+
+long long get_output_size(struct img_type *img, bool strict)
+{
+	char *output_size_str = NULL;
+	long long bytes = img->size;
+
+	if (img->compressed) {
+		output_size_str = dict_get_value(&img->properties, "decompressed-size");
+		if (!output_size_str) {
+			if (!strict)
+				return bytes;
+
+			ERROR("image is compressed but 'decompressed-size' property was not found");
+			return -ENOENT;
+		}
+
+		bytes = ustrtoull(output_size_str, 0);
+		if (errno || bytes <= 0) {
+			ERROR("decompressed-size argument %s: ustrtoull failed",
+			      output_size_str);
+			return -1;
+		}
+
+		TRACE("Image is compressed, decompressed size %lld bytes", bytes);
+
+	} else if (img->is_encrypted) {
+		output_size_str = dict_get_value(&img->properties, "decrypted-size");
+		if (!output_size_str) {
+			if (!strict)
+				return bytes;
+			ERROR("image is encrypted but 'decrypted-size' property was not found");
+			return -ENOENT;
+		}
+
+		bytes = ustrtoull(output_size_str, 0);
+		if (errno || bytes <= 0) {
+			ERROR("decrypted-size argument %s: ustrtoull failed",
+			      output_size_str);
+			return -1;
+		}
+
+		TRACE("Image is crypted, decrypted size %lld bytes", bytes);
+	}
+
+	return bytes;
+}
+
+static bool check_free_space(int fd, long long size, char *fname)
+{
+	/* This needs OS-specific implementation because linux's statfs
+	 * f_bsize is optimal IO size vs. statvfs f_bsize fs block size,
+	 * and freeBSD is the opposite...
+	 * As everything else is the same down to field names work around
+	 * this by just defining an alias
+	 */
+#if defined(__FreeBSD__)
+#define statvfs statfs
+#define fstatvfs fstatfs
+#endif
+	struct statvfs statvfs;
+
+	if (fstatvfs(fd, &statvfs)) {
+		ERROR("Statfs failed on %s, skipping free space check", fname);
+		return true;
+	}
+
+	if (statvfs.f_bfree * statvfs.f_bsize < size) {
+		ERROR("Not enough free space to extract %s (needed %llu, got %lu)",
+		       fname, size, statvfs.f_bfree * statvfs.f_bsize);
+		return false;
+	}
+
+	return true;
+}
+
+bool img_check_free_space(struct img_type *img, int fd)
+{
+	long long size;
+
+	size = get_output_size(img, false);
+
+	if (size <= 0)
+		/* Skip check if no size found */
+		return true;
+
+	return check_free_space(fd, size, img->fname);
 }
